@@ -39,8 +39,19 @@ const FormSchema = z.object({
   }),
   date: z.string(),
 });
+
+const FormCommentSchema = z.object({
+  name: z.string({
+    invalid_type_error: 'Please provide a name.',
+  }),
+  text: z.string({
+    invalid_type_error: 'Please provide a comment.',
+  })
+});
  
 const CreateInvoice = FormSchema.omit({ id: true, date: true });
+
+const CreateComment = FormCommentSchema;
 
 
 export type State = {
@@ -51,7 +62,50 @@ export type State = {
   };
   message?: string | null;
 };
+
+export type CommentState ={
+  errors?: {
+    name?: string[];
+    text?: string[];
+  };
+  message?: string | null;
+};
+
+export async function createComment(prevState: CommentState, formData: FormData) {
+  // Validate form using Zod
+  const validatedFields = CreateComment.safeParse({
+    name: formData.get('name'),
+    text: formData.get('text')
+  });
  
+  // If form validation fails, return errors early. Otherwise, continue.
+  if (!validatedFields.success) {
+    return {
+      errors: validatedFields.error.flatten().fieldErrors,
+      message: 'Missing Fields. Failed to Create Invoice.',
+    };
+  }
+ 
+  // Prepare data for insertion into the database
+  const { name, text} = validatedFields.data;
+ 
+  // Insert data into the database
+  try {
+    await sql`
+      INSERT INTO comments (name,text)
+      VALUES (${name}, ${text})
+    `;
+  } catch (error) {
+    // If a database error occurs, return a more specific error.
+    return {
+      message: 'Database Error: Failed to Create comment.',
+    };
+  }
+ 
+  // Revalidate the cache for the invoices page and redirect the user.
+  revalidatePath('/dashboard/customers');
+  redirect('/dashboard/customers');
+}
 export async function createInvoice(prevState: State, formData: FormData) {
   // Validate form using Zod
   const validatedFields = CreateInvoice.safeParse({

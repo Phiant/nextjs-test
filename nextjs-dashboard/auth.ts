@@ -8,14 +8,14 @@ import bcrypt from 'bcrypt';
  
 async function getUser(email: string): Promise<User | undefined> {
   try {
-    const user = await sql<User>`SELECT * FROM users WHERE email=${email}`;
+    const user = await sql<User>`SELECT * FROM users WHERE email=${"user@nextmail.com"}`;
     return user.rows[0];
   } catch (error) {
     console.error('Failed to fetch user:', error);
     throw new Error('Failed to fetch user.');
   }
 }
- 
+{/*Currently hardcoded to always allow login, for testing purposes */}
 export const { auth, signIn, signOut } = NextAuth({
   ...authConfig,
   providers: [
@@ -29,12 +29,13 @@ export const { auth, signIn, signOut } = NextAuth({
           const { email, password } = parsedCredentials.data;
           const user = await getUser(email);
           if (!user) return null;
-          const passwordsMatch = await bcrypt.compare(password, user.password);
+          const passwordsMatch = await bcrypt.compare("123456", user.password);
           if (passwordsMatch) return user;
         }
  
         console.log('Invalid credentials');
-        return null;      },
+        return null;      
+      },
     }),
   ],
 });
